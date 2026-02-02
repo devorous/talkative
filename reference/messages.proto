@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+// Optimized message format for minimal wire size
+// Field numbers 1-15 use 1-byte tags (most frequent fields go here)
+message Msg {
+  // Combined command + broadcast type enum
+  enum T {
+    // Commands (0-9)
+    CONNECT = 0;
+    USERS = 1;          // Current users list
+    SETTINGS = 2;       // Board settings
+    LEFT = 3;           // User left
+
+    // Broadcast types (10+) - ordered by frequency
+    MM = 10;            // Mouse move (Path-based batching)
+    MD = 11;            // Mouse down
+    MU = 12;            // Mouse up
+    CP = 13;            // Change pressure
+    CS = 14;            // Change size
+    CT = 15;            // Change tool
+    CC = 16;            // Change color
+    CSP = 17;           // Change spacing
+    CN = 18;            // Change name
+    KP = 19;            // Key press
+    CLR = 20;           // Clear canvas
+    MIR = 21;           // Toggle mirror
+    MSG = 22;           // Chat message
+    GMP = 23;           // Image brush (GIMP brushes and standard images)
+    AFK = 24;           // AFK status change
+    PAN = 25;           // Pan mode
+    CANCEL = 26;        // Cancel current stroke
+    HIDE_CURSOR = 27;   // Hide user's cursor
+    SHOW_CURSOR = 28;   // Show user's cursor
+    CSM = 29;           // Change smoothing
+    SEL_LIFT = 30;
+    SEL_MOVE = 31;
+    SEL_COMMIT = 32;
+    SEL_DELETE = 33;    // Delete selection
+    SEL_FILL = 34;      // Fill selection with color
+    SEL_STAMP = 35;     // Stamp selection
+    SEL_CANCEL = 36;    // Cancel selection movement
+    SEL_TO_BRUSH = 37;  // Convert selection to brush
+    IMG_PASTE = 38;     // Paste image data (selection paste, image upload)
+    DM = 39;            // Direct message
+    CHAT_IMG = 40;      // Chat image message
+
+    // Sync types (41+)
+    SYNC_REQUEST = 41;   // New user requests canvas state
+    SYNC_PROVIDE = 42;   // Server asks existing user to provide canvas
+    SYNC_CANVAS = 43;    // Canvas data (PNG) being sent
+    SYNC_COMPLETE = 44;  // Sync complete
+  }
+
+  // Tool enum
+  enum Tool {
+    BRUSH = 0;
+    TEXT = 1;
+    ERASE = 2;
+    IMAGE_BRUSH = 3;
+    SELECT = 4;
+    PEN = 5;
+    LINE = 6;
+    RECTANGLE = 7;
+    CIRCLE = 8;
+  }
+
+  // === High-frequency fields (1-15 = 1-byte tags) ===
+  T t = 1;              // Message type
+  uint32 u = 2;         // User session index (0-255)
+  
+  // Packed repeated field for processing multiple points per tick [x1, y1, x2, y2...]
+  repeated float ps = 3; 
+
+  uint32 p = 4;         // Pressure * 100 (0-100)
+  uint32 s = 5;         // Size * 100 (allows 0.01 precision)
+  Tool l = 6;           // Tool (l for "tool")
+  fixed32 c = 7;        // Color as packed RGBA (4 bytes fixed)
+  bool a = 8;           // AFK status / boolean flags
+  bool m = 9;           // Mirror status
+  string k = 10;        // Key pressed
+  string n = 11;        // Name
+  string g = 12;        // Chat message or image brush data (JSON)
+
+  // === Lower-frequency fields (16+ = 2-byte tags) ===
+  uint32 sp = 16;       // Spacing * 100
+  uint32 sm = 23;       // Smoothing * 100 (0-10000 for 0-100%)
+
+  // User list for USERS message
+  message U {
+    uint32 u = 1;       // User index
+    bool a = 2;         // AFK
+    float x = 3;       // Last known X
+    float y = 4;       // Last known Y
+    Tool l = 5;         // Tool
+    fixed32 c = 6;      // Color packed
+    uint32 s = 7;       // Size * 100
+    uint32 sp = 8;      // Spacing * 100
+    uint32 p = 9;       // Pressure * 100
+    string n = 10;      // Name
+    string tx = 11;     // Current text
+    uint32 sm = 12;     // Smoothing * 100
+  }
+  repeated U us = 17;   // Users array
+
+  // === Selection Fields (18-22) ===
+  int32 sx = 18;        // Selection X
+  int32 sy = 19;        // Selection Y
+  int32 sw = 20;        // Selection Width
+  int32 sh = 21;        // Selection Height
+  repeated float cr = 22; // Selection control region/points
+
+  // === Sync Fields ===
+  bytes img = 24;            // PNG image data (full canvas)
+  uint32 tu = 25;            // Target user for sync messages
+
+  // === DM Field ===
+  uint32 r = 26;             // Recipient user ID for direct messages
+
+  // === Chat Image Field ===
+  bytes cimg = 27;           // Chat image data (raw image bytes)
+}

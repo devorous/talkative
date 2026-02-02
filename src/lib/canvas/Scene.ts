@@ -132,7 +132,7 @@ export class CanvasScene {
 
   private onMouseUp = (): void => {
     this.isDragging = false;
-    this.renderer.domElement.style.cursor = 'default';
+    this.renderer.domElement.style.cursor = 'none';
   };
 
   private onWheel = (e: WheelEvent): void => {

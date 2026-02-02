@@ -46,9 +46,9 @@ export class TextRenderer {
       mesh.outlineColor = textObj.outlineColor;
     }
 
-    // Anchor text at top-left for easier positioning
+    // Anchor text at baseline for natural text positioning
     mesh.anchorX = 'left';
-    mesh.anchorY = 'top';
+    mesh.anchorY = 'baseline';
 
     // Store reference
     mesh.userData = { textId: textObj.id, textObj };

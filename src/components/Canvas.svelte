@@ -144,10 +144,11 @@
     cursorX = worldPos.x;
     cursorY = worldPos.y;
 
-    // Update local cursor and text position
-    scene.cursorRenderer.updateLocalCursor(cursorX, cursorY, currentStyle.fontSize, $userColor);
+    // Update cursor and text position
     if (currentText) {
       updateTypingDisplay();
+    } else {
+      scene.cursorRenderer.updateLocalCursor(cursorX, cursorY, currentStyle.fontSize, $userColor);
     }
 
     // Debounce cursor move broadcast
@@ -162,18 +163,17 @@
   function handleKeyDown(e: KeyboardEvent): void {
     if (!scene || !hasFocus) return;
 
-    // Handle special keys
+    // Escape - cancel current text
     if (e.key === 'Escape') {
-      // Cancel current text
       currentText = '';
       scene.cursorRenderer.clearLocalText();
       stopCursor();
       return;
     }
 
+    // Enter - commit text (keep cursor ready for more typing)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      // Commit current text but stay ready to type more
       if (currentText.trim()) {
         commitCursor({
           content: currentText,
@@ -187,16 +187,38 @@
       return;
     }
 
+    // Shift+Space - non-breaking space (like reference project)
+    if (e.key === ' ' && e.shiftKey) {
+      e.preventDefault();
+      currentText += '\u00A0'; // Unicode non-breaking space
+      updateTypingDisplay();
+      return;
+    }
+
+    // Shift+Enter - newline support
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      currentText += '\n';
+      updateTypingDisplay();
+      return;
+    }
+
+    // Backspace - handle special characters
     if (e.key === 'Backspace') {
       e.preventDefault();
       if (currentText.length > 0) {
-        currentText = currentText.slice(0, -1);
+        // Check for non-breaking space at end
+        if (currentText.endsWith('\u00A0')) {
+          currentText = currentText.slice(0, -1);
+        } else {
+          currentText = currentText.slice(0, -1);
+        }
         updateTypingDisplay();
       }
       return;
     }
 
-    // Handle regular character input
+    // Regular character input
     if (e.key.length === 1) {
       e.preventDefault();
       currentText += e.key;
@@ -264,6 +286,9 @@
 
   onMount(() => {
     scene = new CanvasScene(container);
+
+    // Hide cursor on the Three.js canvas element
+    scene.renderer.domElement.style.cursor = 'none';
 
     // Set initial viewport dimensions
     viewportWidth.set(container.clientWidth);
@@ -362,9 +387,6 @@
     width: 100%;
     height: 100%;
     outline: none;
-  }
-
-  .canvas-container.focused {
-    cursor: text;
+    cursor: none;
   }
 </style>

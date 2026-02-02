@@ -54,6 +54,10 @@
 </script>
 
 <div class="toolbar">
+  <div class="toolbar-section keyboard-hints" title="Shortcuts: Shift+Space for non-breaking space, Shift+Enter for newline, Enter to commit, Escape to cancel">
+    <span class="hint-icon">⌨️</span>
+  </div>
+
   <div class="toolbar-section">
     <label class="toolbar-label">Font</label>
     <select value={currentStyle.fontFamily} onchange={handleFontChange}>
@@ -138,6 +142,21 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  .keyboard-hints {
+    cursor: help;
+    padding: 4px 8px;
+    background: #f3f4f6;
+    border-radius: 4px;
+  }
+
+  .keyboard-hints:hover {
+    background: #e5e7eb;
+  }
+
+  .hint-icon {
+    font-size: 16px;
   }
 
   .toolbar-label {

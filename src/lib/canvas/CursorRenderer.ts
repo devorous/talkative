@@ -17,9 +17,8 @@ export class CursorRenderer {
   private scene: THREE.Scene;
   private cursorGroup: THREE.Group;
 
-  // Local cursor state
-  private localCursor: THREE.Mesh | null = null;
-  private localText: Text | null = null;
+  // Local cursor state - now just a text cursor "|"
+  private localCursorText: Text | null = null;
   private localGroup: THREE.Group;
 
   constructor(scene: THREE.Scene) {
@@ -33,46 +32,41 @@ export class CursorRenderer {
     this.cursorGroup.add(this.localGroup);
   }
 
-  // Create local user's cursor
+  // Create local user's cursor using "|" character
   public createLocalCursor(_color: string, fontSize: number): void {
-    if (this.localCursor) {
-      this.localGroup.remove(this.localCursor);
-      this.localCursor.geometry.dispose();
-      (this.localCursor.material as THREE.Material).dispose();
+    if (this.localCursorText) {
+      this.localGroup.remove(this.localCursorText);
+      this.localCursorText.dispose();
     }
 
-    const height = fontSize * CURSOR_HEIGHT_FACTOR;
-    const geometry = new THREE.PlaneGeometry(CURSOR_WIDTH, height);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x000000, // Always black
-      transparent: true,
-      opacity: 1,
-    });
-
-    this.localCursor = new THREE.Mesh(geometry, material);
-    this.localCursor.position.z = 2; // Above text
-    this.localGroup.add(this.localCursor);
+    this.localCursorText = new Text();
+    this.localCursorText.text = '|';
+    this.localCursorText.fontSize = fontSize;
+    this.localCursorText.color = '#000000';
+    this.localCursorText.anchorX = 'left';
+    this.localCursorText.anchorY = 'baseline';
+    this.localCursorText.position.z = 3; // Above text
+    this.localGroup.add(this.localCursorText);
+    this.localCursorText.sync();
   }
 
   // Update local cursor position
   public updateLocalCursor(x: number, y: number, fontSize: number, _color: string): void {
-    if (!this.localCursor) {
+    if (!this.localCursorText) {
       this.createLocalCursor('#000000', fontSize);
     }
 
     // Update cursor size if font size changed
-    const height = fontSize * CURSOR_HEIGHT_FACTOR;
-    const currentHeight = (this.localCursor!.geometry as THREE.PlaneGeometry).parameters.height;
-    if (Math.abs(currentHeight - height) > 0.1) {
-      this.localCursor!.geometry.dispose();
-      this.localCursor!.geometry = new THREE.PlaneGeometry(CURSOR_WIDTH, height);
+    if (Math.abs(this.localCursorText!.fontSize - fontSize) > 0.1) {
+      this.localCursorText!.fontSize = fontSize;
+      this.localCursorText!.sync();
     }
 
-    // Position cursor - offset to align with text baseline
-    this.localCursor!.position.set(x, y - height / 2, 2);
+    // Position cursor at baseline level
+    this.localCursorText!.position.set(x, y, 3);
   }
 
-  // Update local text preview
+  // Update local text preview - shows text with "|" cursor at the end
   public updateLocalText(content: string, x: number, y: number, style: {
     fontSize: number;
     fontFamily?: string;
@@ -80,34 +74,27 @@ export class CursorRenderer {
     fontWeight?: string;
     fontStyle?: string;
   }): void {
+    // Always show the cursor ("|"), even when there's no text
+    if (!this.localCursorText) {
+      this.createLocalCursor(style.color, style.fontSize);
+    }
+
     if (!content) {
-      if (this.localText) {
-        this.localGroup.remove(this.localText);
-        this.localText.dispose();
-        this.localText = null;
-      }
+      // No text - just show cursor at position
+      this.localCursorText!.text = '|';
+      this.localCursorText!.fontSize = style.fontSize;
+      this.localCursorText!.color = '#000000';
+      this.localCursorText!.position.set(x, y, 3);
+      this.localCursorText!.sync();
       return;
     }
 
-    if (!this.localText) {
-      this.localText = new Text();
-      this.localText.anchorX = 'left';
-      this.localText.anchorY = 'top';
-      this.localGroup.add(this.localText);
-    }
-
-    this.localText.text = content;
-    this.localText.fontSize = style.fontSize;
-    this.localText.color = style.color;
-    this.localText.position.set(x + CURSOR_WIDTH + 2, y, 1.5);
-    this.localText.sync();
-
-    // Move cursor to end of text
-    if (this.localCursor && this.localText.textRenderInfo?.blockBounds) {
-      const bounds = this.localText.textRenderInfo.blockBounds;
-      const textWidth = bounds[2] - bounds[0];
-      this.localCursor.position.x = x + CURSOR_WIDTH + 2 + textWidth;
-    }
+    // Show text with "|" appended
+    this.localCursorText!.text = content + '|';
+    this.localCursorText!.fontSize = style.fontSize;
+    this.localCursorText!.color = style.color;
+    this.localCursorText!.position.set(x, y, 3);
+    this.localCursorText!.sync();
   }
 
   // Hide local cursor (when not focused)
@@ -120,12 +107,11 @@ export class CursorRenderer {
     this.localGroup.visible = true;
   }
 
-  // Clear local text (after commit)
+  // Clear local text (after commit) - reset to just showing "|"
   public clearLocalText(): void {
-    if (this.localText) {
-      this.localGroup.remove(this.localText);
-      this.localText.dispose();
-      this.localText = null;
+    if (this.localCursorText) {
+      this.localCursorText.text = '|';
+      this.localCursorText.sync();
     }
   }
 
@@ -151,7 +137,7 @@ export class CursorRenderer {
       if (!meshData.text) {
         meshData.text = new Text();
         meshData.text.anchorX = 'left';
-        meshData.text.anchorY = 'top';
+        meshData.text.anchorY = 'baseline';
         meshData.group.add(meshData.text);
       }
 
@@ -179,7 +165,8 @@ export class CursorRenderer {
       meshData.bar.position.x = 0;
     }
 
-    meshData.bar.position.y = -height / 2;
+    // Position cursor at baseline level
+    meshData.bar.position.y = 0;
     meshData.group.position.set(cursor.x, cursor.y, 2);
   }
 
@@ -243,13 +230,9 @@ export class CursorRenderer {
   }
 
   public dispose(): void {
-    // Clean up local cursor
-    if (this.localCursor) {
-      this.localCursor.geometry.dispose();
-      (this.localCursor.material as THREE.Material).dispose();
-    }
-    if (this.localText) {
-      this.localText.dispose();
+    // Clean up local cursor text
+    if (this.localCursorText) {
+      this.localCursorText.dispose();
     }
 
     // Clean up remote cursors
