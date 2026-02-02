@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Text {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id")
+  content   String
+  x         Float
+  y         Float
+  chunkX    Int      @map("chunk_x")
+  chunkY    Int      @map("chunk_y")
+
+  // Typography
+  fontFamily    String  @default("Inter") @map("font_family")
+  fontSize      Float   @default(24) @map("font_size")
+  fontWeight    String  @default("normal") @map("font_weight")
+  fontStyle     String  @default("normal") @map("font_style")
+  color         String  @default("#000000")
+  rotation      Float   @default(0)
+  letterSpacing Float   @default(0) @map("letter_spacing")
+  lineHeight    Float   @default(1.2) @map("line_height")
+
+  // Effects
+  outlineWidth  Float  @default(0) @map("outline_width")
+  outlineColor  String @default("#000000") @map("outline_color")
+  shadowOffsetX Float  @default(0) @map("shadow_offset_x")
+  shadowOffsetY Float  @default(0) @map("shadow_offset_y")
+  shadowBlur    Float  @default(0) @map("shadow_blur")
+  shadowColor   String @default("#00000040") @map("shadow_color")
+  opacity       Float  @default(1)
+
+  // Lifecycle
+  createdAt   DateTime @default(now()) @map("created_at")
+  fadeStartAt DateTime @map("fade_start_at")
+  expiresAt   DateTime @map("expires_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([ownerId])
+  @@index([chunkX, chunkY])
+  @@index([expiresAt])
+  @@map("texts")
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  connectedAt DateTime @default(now()) @map("connected_at")
+  lastActive  DateTime @default(now()) @map("last_active")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+
+  @@map("sessions")
+}
+
+model Config {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("config")
+}
